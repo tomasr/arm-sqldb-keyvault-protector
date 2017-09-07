@@ -1,0 +1,53 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "keyVaultName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "keyName": {
+            "type": "string",
+            "minLength": 1
+        },
+        "keyVersion": {
+            "type": "string",
+            "minLength": 1
+        },
+        "sqlServerName": {
+            "type": "string",
+            "minLength": 1
+        }
+    },
+    "variables": {
+        "serverKeyName": "[concat(parameters('keyVaultName'), '_', parameters('keyName'), '_', parameters('keyVersion'))]",
+        "keyUri": "[concat('https://', parameters('keyVaultName'), '.vault.azure.net/keys/', parameters('keyName'), '/', parameters('keyVersion'))]"
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('sqlServerName'), '/', variables('serverKeyName'))]",
+            "type": "Microsoft.Sql/servers/keys",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+            ],
+            "properties": {
+                "serverKeyType": "AzureKeyVault",
+                "uri": "[variables('keyUri')]"
+            }
+        },
+        {
+            "name": "[concat(parameters('sqlServerName'), '/current')]",
+            "type": "Microsoft.Sql/servers/encryptionProtector",
+            "kind": "azurekeyvault",
+            "apiVersion": "2015-05-01-preview",
+            "dependsOn": [
+                "[resourceId('Microsoft.Sql/servers/keys', parameters('sqlServerName'), variables('serverKeyName'))]"
+            ],
+            "properties": {
+                "serverKeyName": "[variables('serverKeyName')]",
+                "serverKeyType": "AzureKeyVault"
+            }
+        }
+    ],
+    "outputs": {}
+}
